@@ -11,6 +11,7 @@ A Python monitoring tool for MyEnergi Zappi devices that tracks grid power flow 
 - Sends push notifications for excessive exports (>1000W)
 - Secure credential management using environment variables
 - Respects API rate limits and best practices
+- Comprehensive test suite with pytest
 
 ## Setup
 
@@ -36,10 +37,15 @@ A Python monitoring tool for MyEnergi Zappi devices that tracks grid power flow 
 
 3. Install dependencies:
    ```bash
-   pip install requests python-dotenv
+   pip install -r requirements.txt
    ```
 
-4. Configure environment variables:
+4. Run tests (optional):
+   ```bash
+   python -m pytest test_zappimon.py -v
+   ```
+
+5. Configure environment variables:
    ```bash
    cp .env.example .env  # If example exists
    # Edit .env with your credentials
@@ -104,6 +110,27 @@ Import periods: 32, Export periods: 13
 - All sensitive credentials are stored in the `.env` file
 - The `.env` file is excluded from version control via `.gitignore`
 - Never commit your actual credentials to the repository
+
+## Testing
+
+The project includes a comprehensive test suite using pytest:
+
+### Running Tests
+```bash
+# Run all tests
+python -m pytest test_zappimon.py -v
+
+# Run specific test scenarios
+python -m pytest test_zappimon.py::TestZappiMonIntegration::test_1200w_export_scenario -v -s
+python -m pytest test_zappimon.py::TestZappiMonIntegration::test_1200w_import_scenario -v -s
+```
+
+### Test Coverage
+- **Unit Tests**: Individual function testing (excessive export tracking, notifications, database operations)
+- **Integration Tests**: Complete workflow testing with mocked API responses
+- **Mock Scenarios**: 1200W export and import scenarios
+- **Database Testing**: SQLite operations with temporary databases
+- **API Mocking**: MyEnergi and Pushover API responses
 
 ## API Rate Limits
 
