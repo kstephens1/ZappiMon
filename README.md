@@ -6,6 +6,8 @@ A Python monitoring tool for MyEnergi Zappi devices that tracks grid power flow 
 
 - Monitors MyEnergi Zappi device status via API
 - Tracks grid power import/export in real-time
+- Stores all readings in SQLite database with timestamps
+- Provides 24-hour statistics and trends
 - Sends push notifications for excessive exports (>1000W)
 - Secure credential management using environment variables
 - Respects API rate limits and best practices
@@ -79,6 +81,8 @@ python ZappiMon.py
 The script will:
 - Connect to your Zappi device
 - Display current grid power flow (import/export)
+- Store each reading in the database with timestamp
+- Show 24-hour statistics (average, range, import/export periods)
 - Send notifications for excessive exports (>1000W)
 
 ## Output Examples
@@ -87,6 +91,12 @@ The script will:
 Importing: 60          # Normal power import
 Exporting: -1500       # Power export
 >>>>>>>Excessive Export Alert<<<<<<<  # Alert for exports >1000W
+
+--- Last 24 Hours Statistics ---
+Total readings: 45
+Average grid: 23.4W
+Range: -1200W to 800W
+Import periods: 32, Export periods: 13
 ```
 
 ## Security
