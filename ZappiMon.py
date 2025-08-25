@@ -10,6 +10,8 @@ import json
 import time
 import os
 from dotenv import load_dotenv
+from database import ZappiDatabase
+from datetime import datetime
 
 # Load environment variables from .env file
 load_dotenv()
@@ -75,6 +77,9 @@ def sendNotif(message, title="ZappiMon Alert", priority=0):
         return False
 
 def main():
+    # Initialize database
+    db = ZappiDatabase()
+    
     # API endpoint and credentials
     url = 'https://director.myenergi.net/cgi-jstatus-Z'
     username = os.getenv("MYENERGI_USERNAME")
@@ -109,6 +114,10 @@ def main():
                 # Get the 'grd' value
                 grd_value = zappi_data.get('grd', 0)
                 
+                # Store the reading in database with current timestamp
+                current_time = datetime.now()
+                db.store_grid_reading(grd_value, current_time)
+                
                 # Check if grd is positive (importing) or negative (exporting)
                 if grd_value > 0:
                     print(f"Importing: {grd_value}")
@@ -125,6 +134,16 @@ def main():
                         )
                 else:
                     print(f"Grid: {grd_value} (neutral)")
+                
+                # Display basic statistics for the last 24 hours
+                stats = db.get_statistics(24)
+                if stats and stats[0] > 0:
+                    total_readings, avg_grd, min_grd, max_grd, import_count, export_count = stats
+                    print(f"\n--- Last 24 Hours Statistics ---")
+                    print(f"Total readings: {total_readings}")
+                    print(f"Average grid: {avg_grd:.1f}W")
+                    print(f"Range: {min_grd}W to {max_grd}W")
+                    print(f"Import periods: {import_count}, Export periods: {export_count}")
             else:
                 print("No zappi data found in response")
                 
