@@ -18,6 +18,7 @@ A Python monitoring tool for MyEnergi Zappi devices that tracks grid power flow 
 ### Prerequisites
 
 - Python 3.7+
+- Node.js 14+ (for npm scripts - optional but recommended)
 - MyEnergi account with Zappi device
 - Pushover account and app token
 
@@ -35,18 +36,38 @@ A Python monitoring tool for MyEnergi Zappi devices that tracks grid power flow 
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    ```
 
+   **Note**: The npm scripts are configured to use `python3` and `pip3` to work with macOS virtual environments where `python` might not be available.
+
+**Important**: Always activate your virtual environment before running npm commands:
+```bash
+source .venv/bin/activate
+npm run lint
+```
+
 3. Install dependencies:
    ```bash
-   pip install -r requirements.txt
+   # Using npm (recommended)
+   npm install
+   
+   # Or using pip directly
+   pip3 install -r requirements.txt
    ```
 
 4. Run tests (optional):
    ```bash
-   python -m pytest test_zappimon.py -v
+   # Using npm (recommended)
+   npm test
+   
+   # Or using pytest directly
+   python3 -m pytest test_zappimon.py -v
    ```
 
 5. Configure environment variables:
    ```bash
+   # Using npm (recommended)
+   npm run env:setup
+   
+   # Or manually
    cp .env.example .env  # If example exists
    # Edit .env with your credentials
    ```
@@ -78,10 +99,76 @@ PUSHOVER_USER_KEY=your_pushover_user_key
 
 ## Usage
 
+### Quick Start
+
 Run the monitoring script:
 
 ```bash
-python ZappiMon.py
+# Using npm (recommended)
+npm start
+# or
+npm run dev
+# or
+npm run monitor
+
+# Or using Python directly
+python3 ZappiMon.py
+```
+
+### Available Commands
+
+The project includes npm-style scripts for common development tasks:
+
+#### 🚀 **Running the Application**
+```bash
+npm start          # Start ZappiMon
+npm run dev        # Development mode (same as start)
+npm run monitor    # Alternative command to run
+npm run check      # Verify module loads correctly
+```
+
+#### 🧪 **Testing Commands**
+```bash
+npm test           # Run all tests with verbose output
+npm run test:watch # Run tests with short traceback
+npm run test:coverage # Run tests with code coverage
+npm run test:unit  # Run only unit tests
+npm run test:integration # Run only integration tests
+```
+
+#### 🛠️ **Development Commands**
+```bash
+npm run lint       # Run flake8 linting
+npm run format     # Format code with black
+npm run format:check # Check code formatting
+npm run clean      # Clean Python cache files
+npm run db:reset   # Remove database file
+```
+
+#### 📦 **Setup Commands**
+```bash
+npm install        # Install production dependencies
+npm run install:dev # Install development dependencies
+npm run setup      # Setup project (env + install)
+npm run setup:dev  # Setup project for development
+npm run env:setup  # Create .env file
+```
+
+#### 🆘 **Utility Commands**
+```bash
+npm run help       # Show all available commands
+npm run version    # Display version information
+```
+
+### Alternative: Using Make
+
+If you prefer Make over npm:
+```bash
+make help          # Show all commands
+make run           # Run ZappiMon
+make test          # Run tests
+make install       # Install dependencies
+make setup         # Setup project
 ```
 
 The script will:
@@ -116,13 +203,43 @@ Import periods: 32, Export periods: 13
 The project includes a comprehensive test suite using pytest:
 
 ### Running Tests
+
+#### Using npm (Recommended)
 ```bash
 # Run all tests
-python -m pytest test_zappimon.py -v
+npm test
+
+# Run tests with short traceback (faster feedback)
+npm run test:watch
+
+# Run tests with code coverage
+npm run test:coverage
+
+# Run specific test types
+npm run test:unit        # Unit tests only
+npm run test:integration # Integration tests only
+```
+
+#### Using pytest directly
+```bash
+# Run all tests
+python3 -m pytest test_zappimon.py -v
 
 # Run specific test scenarios
-python -m pytest test_zappimon.py::TestZappiMonIntegration::test_1200w_export_scenario -v -s
-python -m pytest test_zappimon.py::TestZappiMonIntegration::test_1200w_import_scenario -v -s
+python3 -m pytest test_zappimon.py::TestZappiMonIntegration::test_1200w_export_scenario -v -s
+python3 -m pytest test_zappimon.py::TestZappiMonIntegration::test_1200w_import_scenario -v -s
+
+# Run with coverage
+python3 -m pytest test_zappimon.py --cov=ZappiMon --cov=database --cov-report=html --cov-report=term
+```
+
+#### Using Make
+```bash
+make test              # Run all tests
+make test-watch        # Run tests with short traceback
+make test-coverage     # Run tests with coverage
+make test-unit         # Unit tests only
+make test-integration  # Integration tests only
 ```
 
 ### Test Coverage

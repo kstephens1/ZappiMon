@@ -1,0 +1,55 @@
+{
+  "name": "zappimon",
+  "version": "1.0.0",
+  "description": "A Python monitoring tool for MyEnergi Zappi devices that tracks grid power flow and sends notifications for excessive exports via Pushover",
+  "main": "ZappiMon.py",
+  "scripts": {
+    "start": "python3 ZappiMon.py",
+    "dev": "python3 ZappiMon.py",
+    "test": "python3 -m pytest test_zappimon.py -v",
+    "test:watch": "python3 -m pytest test_zappimon.py -v --tb=short",
+    "test:coverage": "python3 -m pytest test_zappimon.py --cov=ZappiMon --cov=database --cov-report=html --cov-report=term",
+    "test:unit": "python3 -m pytest test_zappimon.py::TestZappiMon -v",
+    "test:integration": "python3 -m pytest test_zappimon.py::TestZappiMonIntegration -v",
+    "lint": "python3 -m flake8 ZappiMon.py database.py test_zappimon.py",
+    "format": "python3 -m black ZappiMon.py database.py test_zappimon.py",
+    "format:check": "python3 -m black --check ZappiMon.py database.py test_zappimon.py",
+    "install": "pip3 install -r requirements.txt",
+    "install:dev": "pip3 install -r requirements.txt && pip3 install -r requirements-dev.txt",
+    "clean": "find . -type f -name '*.pyc' -delete && find . -type d -name '__pycache__' -delete && find . -type d -name '*.egg-info' -exec rm -rf {} +",
+    "db:reset": "rm -f zappimon.db",
+    "env:setup": "cp .env.example .env 2>/dev/null || echo 'Creating .env file...' && touch .env",
+    "setup": "npm run env:setup && npm run install",
+    "setup:dev": "npm run env:setup && npm run install:dev",
+    "run": "python3 ZappiMon.py",
+    "monitor": "python3 ZappiMon.py",
+    "check": "python3 -c \"import ZappiMon; print('ZappiMon module loaded successfully')\"",
+    "help": "echo 'Available commands:' && npm run",
+    "version": "echo 'ZappiMon v1.0.0'"
+  },
+  "keywords": [
+    "myenergi",
+    "zappi",
+    "monitoring",
+    "python",
+    "energy",
+    "grid",
+    "pushover",
+    "notifications"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/ZappiMon.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/ZappiMon/issues"
+  },
+  "homepage": "https://github.com/yourusername/ZappiMon#readme",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}

@@ -20,20 +20,21 @@ load_dotenv()
 excessive_export_start = None
 notification_sent = False
 
+
 def check_excessive_export(grd_value, current_time):
     """
     Check if we have been exporting more than 1000W for 15 consecutive minutes
     Returns True if notification should be sent
     """
     global excessive_export_start, notification_sent
-    
+
     # Check if current reading is excessive export (>1000W)
     if grd_value < -1000:
         # If this is the start of excessive export
         if excessive_export_start is None:
             excessive_export_start = current_time
             notification_sent = False
-        
+
         # Check if we've been exporting for 15 minutes
         if excessive_export_start is not None:
             time_diff = current_time - excessive_export_start
@@ -45,18 +46,19 @@ def check_excessive_export(grd_value, current_time):
         # Reset tracking if not excessive export
         excessive_export_start = None
         notification_sent = False
-    
+
     return False
+
 
 def sendNotif(message, title="ZappiMon Alert", priority=0):
     """
     Send a notification using Pushover API
-    
+
     Args:
         message (str): The message to send
         title (str): The title of the message (default: "ZappiMon Alert")
         priority (int): Priority level (-2 to 2, default: 0)
-    
+
     Returns:
         bool: True if notification sent successfully, False otherwise
     """
@@ -64,7 +66,6 @@ def sendNotif(message, title="ZappiMon Alert", priority=0):
     pushover_url = "https://api.pushover.net/1/messages.json"
     app_token = os.getenv("PUSHOVER_APP_TOKEN")
     user_key = os.getenv("PUSHOVER_USER_KEY")
-    
 
     # Prepare the request data
     data = {
@@ -72,13 +73,13 @@ def sendNotif(message, title="ZappiMon Alert", priority=0):
         "user": user_key,
         "message": message,
         "title": title,
-        "priority": priority
+        "priority": priority,
     }
-    
+
     try:
         # Make the API call
         response = requests.post(pushover_url, data=data, timeout=30)
-        
+
         # Check response status
         if response.status_code == 200:
             json_response = response.json()
@@ -86,21 +87,28 @@ def sendNotif(message, title="ZappiMon Alert", priority=0):
                 print(f"Notification sent successfully: {title}")
                 return True
             else:
-                print(f"Pushover API error: {json_response.get('errors', ['Unknown error'])}")
+                print(
+                    f"Pushover API error: "
+                    f"{json_response.get('errors', ['Unknown error'])}"
+                )
                 return False
         elif response.status_code == 429:
-            print("Pushover API: Rate limit exceeded. Please wait before sending more notifications.")
+            print(
+                "Pushover API: Rate limit exceeded. Please wait before sending more notifications."
+            )
             return False
         elif response.status_code >= 400 and response.status_code < 500:
             # Client error - don't retry
             json_response = response.json()
-            print(f"Pushover API client error: {json_response.get('errors', ['Unknown error'])}")
+            print(
+                f"Pushover API client error: {json_response.get('errors', ['Unknown error'])}"
+            )
             return False
         else:
             # Server error - could retry later
             print(f"Pushover API server error: {response.status_code}")
             return False
-            
+
     except requests.exceptions.RequestException as e:
         print(f"Error sending notification: {e}")
         return False
@@ -108,48 +116,43 @@ def sendNotif(message, title="ZappiMon Alert", priority=0):
         print(f"Unexpected error sending notification: {e}")
         return False
 
+
 def main():
     # Initialize database
     db = ZappiDatabase()
-    
+
     # API endpoint and credentials
-    url = 'https://director.myenergi.net/cgi-jstatus-Z'
+    url = "https://director.myenergi.net/cgi-jstatus-Z"
     username = os.getenv("MYENERGI_USERNAME")
     password = os.getenv("MYENERGI_PASSWORD")
-    
+
     # Headers
-    headers = {
-        'accept': 'application/json',
-        'content-type': 'application/json'
-    }
-    
+    headers = {"accept": "application/json", "content-type": "application/json"}
+
     try:
         # Make the API call with digest authentication
         response = requests.get(
-            url,
-            auth=HTTPDigestAuth(username, password),
-            headers=headers,
-            timeout=30
+            url, auth=HTTPDigestAuth(username, password), headers=headers, timeout=30
         )
-        
+
         # Check if the request was successful
         response.raise_for_status()
-        
+
         # Parse the JSON response
         try:
             json_response = response.json()
-            
+
             # Check if zappi data exists
-            if 'zappi' in json_response and len(json_response['zappi']) > 0:
-                zappi_data = json_response['zappi'][0]
-                
+            if "zappi" in json_response and len(json_response["zappi"]) > 0:
+                zappi_data = json_response["zappi"][0]
+
                 # Get the 'grd' value
-                grd_value = zappi_data.get('grd', 0)
-                
+                grd_value = zappi_data.get("grd", 0)
+
                 # Store the reading in database with current timestamp
                 current_time = datetime.now()
                 db.store_grid_reading(grd_value, current_time)
-                
+
                 # Check if grd is positive (importing) or negative (exporting)
                 if grd_value > 0:
                     print(f"Importing: {grd_value}")
@@ -158,44 +161,56 @@ def main():
                     # Check if export is excessive (more than 1000)
                     if abs(grd_value) > 1000:
                         print(">>>>>>>Excessive Export Alert<<<<<<<")
-                        
+
                         # Show export tracking status
                         if excessive_export_start is not None:
                             time_diff = current_time - excessive_export_start
                             minutes_elapsed = time_diff.total_seconds() / 60
-                            print(f"Excessive export duration: {minutes_elapsed:.1f} minutes")
-                        
+                            print(
+                                f"Excessive export duration: {minutes_elapsed:.1f} minutes"
+                            )
+
                         # Check for consecutive 15-minute excessive export
                         if check_excessive_export(grd_value, current_time):
                             # Send notification for sustained excessive export
                             sendNotif(
                                 message=f"Excessive export detected: {grd_value}W",
                                 title="ZappiMon - Sustained Excessive Export Alert",
-                                priority=1
+                                priority=1,
                             )
                 else:
                     print(f"Grid: {grd_value} (neutral)")
-                
+
                 # Display basic statistics for the last 24 hours
                 stats = db.get_statistics(24)
                 if stats and stats[0] > 0:
-                    total_readings, avg_grd, min_grd, max_grd, import_count, export_count = stats
+                    (
+                        total_readings,
+                        avg_grd,
+                        min_grd,
+                        max_grd,
+                        import_count,
+                        export_count,
+                    ) = stats
                     print(f"\n--- Last 24 Hours Statistics ---")
                     print(f"Total readings: {total_readings}")
                     print(f"Average grid: {avg_grd:.1f}W")
                     print(f"Range: {min_grd}W to {max_grd}W")
-                    print(f"Import periods: {import_count}, Export periods: {export_count}")
+                    print(
+                        f"Import periods: {import_count}, Export periods: {export_count}"
+                    )
             else:
                 print("No zappi data found in response")
-                
+
         except json.JSONDecodeError:
             print("Error: Response is not valid JSON")
             print(response.text)
-            
+
     except requests.exceptions.RequestException as e:
         print(f"Error making API request: {e}")
     except Exception as e:
         print(f"Unexpected error: {e}")
+
 
 if __name__ == "__main__":
     main()

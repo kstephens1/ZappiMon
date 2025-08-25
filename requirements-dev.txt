@@ -1,0 +1,19 @@
+# Development dependencies for ZappiMon
+# Install with: pip install -r requirements-dev.txt
+
+# Code formatting
+black==24.1.1
+
+# Linting
+flake8==7.0.0
+flake8-docstrings==1.7.0
+
+# Code coverage
+pytest-cov==4.1.0
+coverage==7.4.1
+
+# Type checking (optional)
+mypy==1.8.0
+
+# Pre-commit hooks (optional)
+pre-commit==3.6.0
