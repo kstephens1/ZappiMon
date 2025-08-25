@@ -16,6 +16,38 @@ from datetime import datetime
 # Load environment variables from .env file
 load_dotenv()
 
+# Global variables for export tracking
+excessive_export_start = None
+notification_sent = False
+
+def check_excessive_export(grd_value, current_time):
+    """
+    Check if we have been exporting more than 1000W for 15 consecutive minutes
+    Returns True if notification should be sent
+    """
+    global excessive_export_start, notification_sent
+    
+    # Check if current reading is excessive export (>1000W)
+    if grd_value < -1000:
+        # If this is the start of excessive export
+        if excessive_export_start is None:
+            excessive_export_start = current_time
+            notification_sent = False
+        
+        # Check if we've been exporting for 15 minutes
+        if excessive_export_start is not None:
+            time_diff = current_time - excessive_export_start
+            if time_diff.total_seconds() >= 900:  # 15 minutes = 900 seconds
+                if not notification_sent:
+                    notification_sent = True
+                    return True
+    else:
+        # Reset tracking if not excessive export
+        excessive_export_start = None
+        notification_sent = False
+    
+    return False
+
 def sendNotif(message, title="ZappiMon Alert", priority=0):
     """
     Send a notification using Pushover API
@@ -126,12 +158,21 @@ def main():
                     # Check if export is excessive (more than 1000)
                     if abs(grd_value) > 1000:
                         print(">>>>>>>Excessive Export Alert<<<<<<<")
-                        # Send notification for excessive export
-                        sendNotif(
-                            message=f"Excessive export detected: {grd_value}W",
-                            title="ZappiMon - Excessive Export Alert",
-                            priority=1
-                        )
+                        
+                        # Show export tracking status
+                        if excessive_export_start is not None:
+                            time_diff = current_time - excessive_export_start
+                            minutes_elapsed = time_diff.total_seconds() / 60
+                            print(f"Excessive export duration: {minutes_elapsed:.1f} minutes")
+                        
+                        # Check for consecutive 15-minute excessive export
+                        if check_excessive_export(grd_value, current_time):
+                            # Send notification for sustained excessive export
+                            sendNotif(
+                                message=f"Excessive export detected: {grd_value}W",
+                                title="ZappiMon - Sustained Excessive Export Alert",
+                                priority=1
+                            )
                 else:
                     print(f"Grid: {grd_value} (neutral)")
                 
