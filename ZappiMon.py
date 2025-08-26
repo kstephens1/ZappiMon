@@ -11,7 +11,7 @@ import time
 import os
 from dotenv import load_dotenv
 from database import ZappiDatabase
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Load environment variables from .env file
 load_dotenv()
@@ -19,6 +19,7 @@ load_dotenv()
 # Global variables for export tracking
 excessive_export_start = None
 notification_sent = False
+last_notification_sent_at = {}
 
 
 def check_excessive_export(grd_value, current_time):
@@ -62,6 +63,23 @@ def sendNotif(message, title="ZappiMon Alert", priority=0):
     Returns:
         bool: True if notification sent successfully, False otherwise
     """
+    # Rate limit certain titles to avoid duplicate notifications
+    rate_limited_titles = {
+        # Do not send this alert more than once per hour
+        "ZappiMon - Sustained Excessive Export Alert": 3600,
+    }
+
+    now = datetime.now()
+    if title in rate_limited_titles:
+        cooldown_seconds = rate_limited_titles[title]
+        last_sent = last_notification_sent_at.get(title)
+        if last_sent is not None and (now - last_sent).total_seconds() < cooldown_seconds:
+            remaining = cooldown_seconds - (now - last_sent).total_seconds()
+            print(
+                f"Skipping notification '{title}' due to rate limit. Try again in {int(remaining)}s."
+            )
+            return False
+
     # Pushover API configuration
     pushover_url = "https://api.pushover.net/1/messages.json"
     app_token = os.getenv("PUSHOVER_APP_TOKEN")
@@ -85,6 +103,8 @@ def sendNotif(message, title="ZappiMon Alert", priority=0):
             json_response = response.json()
             if json_response.get("status") == 1:
                 print(f"Notification sent successfully: {title}")
+                # Record send time for rate-limited titles
+                last_notification_sent_at[title] = now
                 return True
             else:
                 print(
