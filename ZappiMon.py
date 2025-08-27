@@ -175,9 +175,11 @@ def main():
 
                 # Check if grd is positive (importing) or negative (exporting)
                 if grd_value > 0:
-                    print(f"Importing: {grd_value}")
+                    print(f"\n{current_time.strftime('%Y-%m-%d %H:%M:%S')}")
+                    print(f"Importing: {grd_value}W")
                 elif grd_value < 0:
-                    print(f"Exporting: {grd_value}")
+                    print(f"\n{current_time.strftime('%Y-%m-%d %H:%M:%S')}")
+                    print(f"Exporting: {grd_value}W")
                     # Check if export is excessive (more than 1000)
                     if abs(grd_value) > 1000:
                         print(">>>>>>>Excessive Export Alert<<<<<<<")
@@ -201,24 +203,6 @@ def main():
                 else:
                     print(f"Grid: {grd_value} (neutral)")
 
-                # Display basic statistics for the last 24 hours
-                stats = db.get_statistics(24)
-                if stats and stats[0] > 0:
-                    (
-                        total_readings,
-                        avg_grd,
-                        min_grd,
-                        max_grd,
-                        import_count,
-                        export_count,
-                    ) = stats
-                    print(f"\n--- Last 24 Hours Statistics ---")
-                    print(f"Total readings: {total_readings}")
-                    print(f"Average grid: {avg_grd:.1f}W")
-                    print(f"Range: {min_grd}W to {max_grd}W")
-                    print(
-                        f"Import periods: {import_count}, Export periods: {export_count}"
-                    )
             else:
                 print("No zappi data found in response")
 
