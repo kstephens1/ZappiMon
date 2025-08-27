@@ -9,6 +9,7 @@ from requests.auth import HTTPDigestAuth
 import json
 import time
 import os
+import sys
 from dotenv import load_dotenv
 from database import ZappiDatabase
 from datetime import datetime, timedelta
@@ -175,11 +176,9 @@ def main():
 
                 # Check if grd is positive (importing) or negative (exporting)
                 if grd_value > 0:
-                    print(f"\n{current_time.strftime('%Y-%m-%d %H:%M:%S')}")
-                    print(f"Importing: {grd_value}W")
+                    print(f"\n{current_time.strftime('%Y-%m-%d %H:%M:%S')} Importing: {grd_value}W")
                 elif grd_value < 0:
-                    print(f"\n{current_time.strftime('%Y-%m-%d %H:%M:%S')}")
-                    print(f"Exporting: {grd_value}W")
+                    print(f"\n{current_time.strftime('%Y-%m-%d %H:%M:%S')} Exporting: {grd_value}W")
                     # Check if export is excessive (more than 1000)
                     if abs(grd_value) > 1000:
                         print(">>>>>>>Excessive Export Alert<<<<<<<")
@@ -217,4 +216,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Check if "msg" parameter is provided
+    if len(sys.argv) > 1 and sys.argv[1] == "msg":
+        print("Sending test notification...")
+        sendNotif("Just Testing", "ZappiMon Test", 0)
+        print("Test notification sent!")
+    else:
+        main()
