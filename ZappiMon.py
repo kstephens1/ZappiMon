@@ -31,7 +31,7 @@ def check_excessive_export(grd_value, current_time):
     global excessive_export_start, notification_sent
 
     # Check if current reading is excessive export (>1000W)
-    if grd_value < -1000:
+    if grd_value < -500:
         # If this is the start of excessive export
         if excessive_export_start is None:
             excessive_export_start = current_time
