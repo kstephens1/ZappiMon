@@ -115,6 +115,20 @@ npm run monitor
 python3 ZappiMon.py
 ```
 
+### Testing Push Notifications
+
+To test your Pushover configuration, you can run ZappiMon in test mode:
+
+```bash
+# Send a test notification
+python3 ZappiMon.py msg
+
+# Or using npm
+npm start -- msg
+```
+
+This will send a test notification with the message "Just Testing" and title "ZappiMon Test" to verify your Pushover setup is working correctly.
+
 ### Available Commands
 
 The project includes npm-style scripts for common development tasks:
@@ -190,6 +204,51 @@ Total readings: 45
 Average grid: 23.4W
 Range: -1200W to 800W
 Import periods: 32, Export periods: 13
+```
+
+## Automation
+
+### Crontab Setup
+
+To run the monitoring scripts automatically, you can set up cron jobs. Here are some examples:
+
+#### ZappiMon - Monitor every 5 minutes during 8am-3pm
+```bash
+*/5 8-15 * * * cd /home/pi/ZappiMon && /home/pi/ZappiMon/.venv/bin/python /home/pi/ZappiMon/ZappiMon.py >> /home/pi/ZappiMon/cron.log 2>&1
+```
+
+#### EddiMon - Check temperature daily at 8pm
+```bash
+0 20 * * * cd /home/pi/ZappiMon && /home/pi/ZappiMon/.venv/bin/python /home/pi/ZappiMon/EddiMon.py msg >> /home/pi/ZappiMon/eddi_cron.log 2>&1
+```
+
+#### To add these to your crontab:
+```bash
+# Edit crontab
+crontab -e
+
+# Add the desired entries and save
+```
+
+#### To monitor the log files:
+```bash
+# Check ZappiMon logs
+tail -f /home/pi/ZappiMon/cron.log
+
+# Check EddiMon logs
+tail -f /home/pi/ZappiMon/eddi_cron.log
+```
+
+#### Alternative scheduling examples:
+```bash
+# Run ZappiMon every 15 minutes
+*/15 * * * * cd /home/pi/ZappiMon && /home/pi/ZappiMon/.venv/bin/python /home/pi/ZappiMon/ZappiMon.py >> /home/pi/ZappiMon/cron.log 2>&1
+
+# Run EddiMon every hour
+0 * * * * cd /home/pi/ZappiMon && /home/pi/ZappiMon/.venv/bin/python /home/pi/ZappiMon/EddiMon.py msg >> /home/pi/ZappiMon/eddi_cron.log 2>&1
+
+# Run both scripts every 30 minutes
+*/30 * * * * cd /home/pi/ZappiMon && /home/pi/ZappiMon/.venv/bin/python /home/pi/ZappiMon/ZappiMon.py >> /home/pi/ZappiMon/cron.log 2>&1 && /home/pi/ZappiMon/.venv/bin/python /home/pi/ZappiMon/EddiMon.py msg >> /home/pi/ZappiMon/eddi_cron.log 2>&1
 ```
 
 ## Security
