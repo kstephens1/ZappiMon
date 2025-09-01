@@ -181,15 +181,18 @@ def main():
                     print(f"\n{current_time.strftime('%Y-%m-%d %H:%M:%S')} Exporting: {grd_value}W")
                     # Check if export is excessive (more than 1000)
                     if abs(grd_value) > 1000:
+                        print(">>>>>>>Excessive Export Alert<<<<<<<")
+
                         # Show export tracking status
                         if excessive_export_start is not None:
                             time_diff = current_time - excessive_export_start
                             minutes_elapsed = time_diff.total_seconds() / 60
-                            print(f"Excessive export duration: {minutes_elapsed:.1f} minutes")
+                            print(
+                                f"Excessive export duration: {minutes_elapsed:.1f} minutes"
+                            )
 
                         # Check for consecutive 15-minute excessive export
                         if check_excessive_export(grd_value, current_time):
-                            print(">>>>>>>Excessive Export Alert<<<<<<<")
                             # Send notification for sustained excessive export
                             sendNotif(
                                 message=f"Excessive export detected: {grd_value}W",
