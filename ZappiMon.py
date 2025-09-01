@@ -31,11 +31,12 @@ def check_excessive_export(grd_value, current_time):
     global excessive_export_start, notification_sent
 
     # Check if current reading is excessive export (>1000W)
-    if grd_value < -500:
+    if grd_value < -1000:
         # If this is the start of excessive export
         if excessive_export_start is None:
             excessive_export_start = current_time
             notification_sent = False
+            print(f"DEBUG: Started tracking excessive export at {current_time}")
 
         # Check if we've been exporting for 15 minutes
         if excessive_export_start is not None:
@@ -43,9 +44,16 @@ def check_excessive_export(grd_value, current_time):
             if time_diff.total_seconds() >= 900:  # 15 minutes = 900 seconds
                 if not notification_sent:
                     notification_sent = True
+                    print(f"DEBUG: Triggering notification after {time_diff.total_seconds()/60:.1f} minutes")
                     return True
+                else:
+                    print(f"DEBUG: Notification already sent, skipping")
+            else:
+                print(f"DEBUG: Export duration: {time_diff.total_seconds()/60:.1f} minutes (need 15)")
     else:
         # Reset tracking if not excessive export
+        if excessive_export_start is not None:
+            print(f"DEBUG: Resetting export tracking (current: {grd_value}W)")
         excessive_export_start = None
         notification_sent = False
 
@@ -80,6 +88,8 @@ def sendNotif(message, title="ZappiMon Alert", priority=0):
                 f"Skipping notification '{title}' due to rate limit. Try again in {int(remaining)}s."
             )
             return False
+        else:
+            print(f"DEBUG: Rate limit check passed for '{title}'")
 
     # Pushover API configuration
     pushover_url = "https://api.pushover.net/1/messages.json"
