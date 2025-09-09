@@ -40,6 +40,24 @@ class ZappiDatabase:
             """
             )
 
+            # Create notifications table for persistent cooldowns
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS notifications (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL UNIQUE,
+                    last_sent_at DATETIME NOT NULL
+                )
+            """
+            )
+
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_notifications_title
+                ON notifications(title)
+            """
+            )
+
             conn.commit()
 
     def store_grid_reading(self, grd_value, timestamp=None):
@@ -124,3 +142,29 @@ class ZappiDatabase:
                 )
             )
             return cursor.fetchall()
+
+    # Notification persistence helpers
+    def get_last_notification_sent_at(self, title: str):
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT last_sent_at FROM notifications WHERE title = ?
+            """,
+                (title,),
+            )
+            row = cursor.fetchone()
+            return row[0] if row else None
+
+    def set_last_notification_sent_at(self, title: str, timestamp: str):
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO notifications(title, last_sent_at)
+                VALUES(?, ?)
+                ON CONFLICT(title) DO UPDATE SET last_sent_at=excluded.last_sent_at
+            """,
+                (title, timestamp),
+            )
+            conn.commit()

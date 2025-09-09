@@ -146,11 +146,9 @@ def sendNotif(message, title="ZappiMon Alert", priority=0):
     Returns:
         bool: True if notification sent successfully, False otherwise
     """
-    # Rate limit certain titles to avoid duplicate notifications
-    rate_limited_titles = {
-        # Do not send this alert more than once per hour
-        "ZappiMon - Sustained Excessive Export Alert": 3600,
-    }
+    # Rate limit certain titles to avoid duplicate notifications (process-local)
+    # Note: Persistent cooldowns are handled below via the database.
+    rate_limited_titles = {}
 
     now = datetime.now()
     if title in rate_limited_titles:
@@ -164,6 +162,30 @@ def sendNotif(message, title="ZappiMon Alert", priority=0):
             return False
         else:
             print(f"DEBUG: Rate limit check passed for '{title}'")
+
+    # Persistent 2-hour cooldown for the sustained excessive export alert
+    if title == "ZappiMon - Sustained Excessive Export Alert":
+        try:
+            db = ZappiDatabase()
+            last_sent_raw = db.get_last_notification_sent_at(title)
+            if last_sent_raw:
+                try:
+                    last_sent_dt = datetime.fromisoformat(last_sent_raw)
+                except ValueError:
+                    try:
+                        last_sent_dt = datetime.strptime(last_sent_raw, "%Y-%m-%d %H:%M:%S")
+                    except Exception:
+                        last_sent_dt = None
+                if last_sent_dt is not None:
+                    elapsed = (now - last_sent_dt).total_seconds()
+                    if elapsed < 7200:
+                        print(
+                            f"Skipping '{title}' due to persistent cooldown. Try again in {int(7200 - elapsed)}s."
+                        )
+                        return False
+            print(f"DEBUG: Persistent cooldown check passed for '{title}'")
+        except Exception as e:
+            print(f"DEBUG: Persistent cooldown check failed: {e}")
 
     # Pushover API configuration
     pushover_url = "https://api.pushover.net/1/messages.json"
@@ -188,8 +210,15 @@ def sendNotif(message, title="ZappiMon Alert", priority=0):
             json_response = response.json()
             if json_response.get("status") == 1:
                 print(f"Notification sent successfully: {title}")
-                # Record send time for rate-limited titles
+                # Record send time for process-local rate-limiting
                 last_notification_sent_at[title] = now
+                # Record persistent cooldown for sustained excessive export
+                if title == "ZappiMon - Sustained Excessive Export Alert":
+                    try:
+                        db = db if 'db' in locals() else ZappiDatabase()
+                        db.set_last_notification_sent_at(title, now.isoformat(sep=' '))
+                    except Exception as e:
+                        print(f"DEBUG: Failed to store persistent cooldown: {e}")
                 return True
             else:
                 print(
