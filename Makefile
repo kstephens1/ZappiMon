@@ -1,4 +1,4 @@
-.PHONY: help install install-dev test test-watch test-coverage test-unit test-integration lint format format-check clean db-reset setup setup-dev run monitor check
+.PHONY: help install install-dev test test-watch test-coverage test-unit test-integration lint format format-check clean db-reset setup setup-dev run monitor check deploy-prod
 
 # Default target
 help:
@@ -20,6 +20,7 @@ help:
 	@echo "  run            - Run ZappiMon"
 	@echo "  monitor        - Run ZappiMon (alias for run)"
 	@echo "  check          - Check if ZappiMon module loads"
+	@echo "  deploy-prod    - Deploy to production (backup .env, pull, reinstall, restore .env)"
 
 install:
 	pip3 install -r requirements.txt
@@ -84,3 +85,17 @@ monitor: run
 
 check:
 	python3 -c "import ZappiMon; print('ZappiMon module loaded successfully')"
+
+deploy-prod:
+	@echo "Deploying to production..."
+	@echo "Backing up .env file..."
+	@if [ -f .env ]; then cp .env .env.backup; fi
+	@echo "Pulling latest changes..."
+	git pull origin main
+	@echo "Updating Python dependencies..."
+	pip3 install -r requirements.txt
+	@echo "Updating Node.js dependencies..."
+	npm install
+	@echo "Restoring .env file..."
+	@if [ -f .env.backup ]; then mv .env.backup .env; fi
+	@echo "Deployment complete! Restart your application service."

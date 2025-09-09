@@ -108,3 +108,19 @@ class ZappiDatabase:
                 )
             )
             return cursor.fetchone()
+
+    def get_readings_since_minutes(self, minutes=60):
+        """Get all readings from the last N minutes"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT grd_value, timestamp 
+                FROM grid_readings 
+                WHERE timestamp >= datetime('now', '-{} minutes')
+                ORDER BY timestamp ASC
+            """.format(
+                    minutes
+                )
+            )
+            return cursor.fetchall()

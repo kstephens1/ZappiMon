@@ -23,6 +23,80 @@ notification_sent = False
 last_notification_sent_at = {}
 
 
+# DB-backed check for sustained excessive export over a rolling window
+def has_sustained_excessive_export(
+    db: ZappiDatabase,
+    minutes: int = 15,
+    threshold_watts: int = -1000,
+    required_ratio: float = 0.8,
+) -> bool:
+    """
+    Return True if, over the last `minutes`, ALL readings indicate export below the threshold.
+
+    Notes:
+    - Intended for cron-based runs where process memory does not persist.
+    - Requires enough coverage in the window (at least 3 readings and span ~window).
+    """
+    try:
+        readings = db.get_readings_since_minutes(minutes)
+    except Exception as e:
+        print(f"DEBUG: DB query failed for window check: {e}")
+        return False
+
+    if not readings:
+        print("DEBUG: No readings in window; cannot confirm sustained export")
+        return False
+
+    # readings: List[Tuple(grd_value, timestamp)] ordered ASC by timestamp
+    parsed = []
+    for grd_value, ts in readings:
+        ts_dt = ts
+        if isinstance(ts, str):
+            try:
+                # SQLite stores as 'YYYY-MM-DD HH:MM:SS.SSSSSS'
+                ts_dt = datetime.fromisoformat(ts)
+            except ValueError:
+                # Fallback parse without micros
+                try:
+                    ts_dt = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
+                except Exception:
+                    print(f"DEBUG: Unparseable timestamp: {ts}")
+                    continue
+        parsed.append((int(grd_value), ts_dt))
+
+    if len(parsed) < 3:
+        print(f"DEBUG: Only {len(parsed)} readings in window; need >= 3 for confidence")
+        return False
+
+    now = datetime.now()
+    oldest_time = parsed[0][1]
+    newest_time = parsed[-1][1]
+    window_span_seconds = (newest_time - oldest_time).total_seconds()
+
+    # Expect roughly full coverage of the window; allow 90s slack
+    required_span = minutes * 60 - 90
+    if window_span_seconds < required_span:
+        print(
+            f"DEBUG: Insufficient window span {window_span_seconds:.0f}s; need >= {required_span}s"
+        )
+        return False
+
+    total = len(parsed)
+    below = sum(1 for grd, _ in parsed if grd <= threshold_watts)
+    ratio = below / total if total else 0.0
+
+    if ratio >= required_ratio:
+        print(
+            f"DEBUG: Sustained export confirmed for {minutes}m; {below}/{total} ({ratio:.0%}) readings <= {threshold_watts}W"
+        )
+        return True
+
+    print(
+        f"DEBUG: Not enough excessive readings: {below}/{total} ({ratio:.0%}) <= {threshold_watts}W; need >= {required_ratio:.0%}"
+    )
+    return False
+
+
 def check_excessive_export(grd_value, current_time):
     """
     Check if we have been exporting more than 1000W for 15 consecutive minutes
@@ -189,23 +263,14 @@ def main():
                     print(f"\n{current_time.strftime('%Y-%m-%d %H:%M:%S')} Importing: {grd_value}W")
                 elif grd_value < 0:
                     print(f"\n{current_time.strftime('%Y-%m-%d %H:%M:%S')} Exporting: {grd_value}W")
-                    # Check if export is excessive (more than 1000)
-                    if abs(grd_value) > 1000:
-                        # Show export tracking status
-                        if excessive_export_start is not None:
-                            time_diff = current_time - excessive_export_start
-                            minutes_elapsed = time_diff.total_seconds() / 60
-                            print(f"Excessive export duration: {minutes_elapsed:.1f} minutes")
-
-                        # Check for consecutive 15-minute excessive export
-                        if check_excessive_export(grd_value, current_time):
-                            print(">>>>>>>Excessive Export Alert<<<<<<<")
-                            # Send notification for sustained excessive export
-                            sendNotif(
-                                message=f"Excessive export detected: {grd_value}W",
-                                title="ZappiMon - Sustained Excessive Export Alert",
-                                priority=1,
-                            )
+                    # DB-backed sustained excessive export over last 15 minutes
+                    if has_sustained_excessive_export(db, minutes=15, threshold_watts=-1000, required_ratio=0.8):
+                        print(">>>>>>>Excessive Export Alert<<<<<<<")
+                        sendNotif(
+                            message=f"Excessive export sustained in last 15m. Latest: {grd_value}W",
+                            title="ZappiMon - Sustained Excessive Export Alert",
+                            priority=1,
+                        )
                 else:
                     print(f"Grid: {grd_value} (neutral)")
 
